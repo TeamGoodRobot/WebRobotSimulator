@@ -121,8 +121,25 @@ function initAmmo(AmmoLib) {
  */
 function init() {
     console.log("init: Script execution started.");
-    showStatus("Main script running...", false, true); // Existing robust showStatus will be applied later
-    initThreeJS(); // Existing initThreeJS will be updated later
+    // Add pre-emptive checks here:
+    if (typeof THREE === 'undefined') {
+        console.error("THREE object is undefined! three.min.js might have failed to load. Application cannot start.");
+        alert("Critical Error: THREE.js core library not loaded. Application cannot start. Check browser console (F12) for Network errors.");
+        return; // Halt execution
+    }
+    if (typeof THREE.URDFLoader === 'undefined') {
+        const criticalMessage = "THREE.URDFLoader is undefined! URDFLoader.js likely failed to load or is incorrect. Check Network tab in browser console (F12).";
+        console.error(criticalMessage);
+        // Attempt to use showStatus, which will fallback to alert if statusElement isn't ready
+        // (initThreeJS, which initializes statusElement, is called after this check)
+        // So, an alert is more reliable here.
+        alert(criticalMessage);
+        // Do not return yet, allow initThreeJS to run to set up basic scene and status element for other messages.
+        // The URDF loading will fail later, but at least some UI might appear.
+    }
+
+    showStatus("Main script running...", false, true); // This message might be overridden by the alert above if URDFLoader is missing.
+    initThreeJS();
     console.log("init: Attempting to load Ammo.js...");
     Ammo().then(function (AmmoLib) { // Ammo() is from ammo.wasm.js
         console.log("init: Ammo.js library loaded successfully.");
@@ -131,7 +148,7 @@ function init() {
     }).catch(e => {
         console.error("init: Error loading Ammo.js:", e);
         showStatus("Fatal Error: Could not load Physics Engine (Ammo.js). Check console.", true);
-        animate();
+        animate(); // Still call animate to render scene, even if physics is off
     });
 }
 
