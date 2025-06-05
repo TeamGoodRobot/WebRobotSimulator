@@ -32,6 +32,10 @@ let p2pConstraint = null;
 
 // Mouse/Touch Interaction for Dragging IK Target
 const raycaster = new THREE.Raycaster();
+console.log("[Debug] Just before new THREE.Vector2(): typeof THREE:", typeof THREE);
+console.log("[Debug] Just before new THREE.Vector2(): THREE itself:", THREE);
+if (THREE) { console.log("[Debug] Just before new THREE.Vector2(): typeof THREE.Vector2:", typeof THREE.Vector2); }
+if (THREE) { console.log("[Debug] Just before new THREE.Vector2(): THREE.Vector2 content:", THREE.Vector2 ? THREE.Vector2.toString() : "undefined or null"); }
 const mouse = new THREE.Vector2();
 let isDraggingTarget = false;
 let dragPlane;
