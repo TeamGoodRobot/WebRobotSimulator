@@ -1,8 +1,3 @@
-import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
-import { STLLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/STLLoader.js';
-import { OBJLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/OBJLoader.js';
-import { ColladaLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/ColladaLoader.js';
-import { URDFLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/URDFLoader.js';
 
 // --- Global Variables ---
 
