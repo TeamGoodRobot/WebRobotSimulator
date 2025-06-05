@@ -13,7 +13,7 @@ let statusElement;
 
 
 // Ammo.js Physics Engine Components
-let Ammo;
+// let Ammo; // Removed global Ammo
 let physicsWorld, dispatcher, broadphase, solver, collisionConfiguration;
 const rigidBodies = [];
 const margin = 0.05;
@@ -43,72 +43,94 @@ const dragOffset = new THREE.Vector3();
  * Also initializes UI elements like the status message display.
  */
 function initThreeJS() {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xeeeeee);
+    try {
+        console.log("initThreeJS: Starting graphics initialization...");
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xeeeeee);
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 2, 5);
-    camera.lookAt(0, 0, 0);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 5);
+        camera.lookAt(0, 0, 0);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    renderer.domElement.addEventListener('mousedown', onMouseDown, false);
-    renderer.domElement.addEventListener('mousemove', onMouseMoveGeneral, false);
-    renderer.domElement.addEventListener('mouseup', onMouseUp, false);
-    renderer.domElement.addEventListener('touchstart', onTouchStart, false);
-    renderer.domElement.addEventListener('touchmove', onTouchMove, false);
-    renderer.domElement.addEventListener('touchend', onTouchEnd, false);
+        renderer.domElement.addEventListener('mousedown', onMouseDown, false);
+        renderer.domElement.addEventListener('mousemove', onMouseMoveGeneral, false);
+        renderer.domElement.addEventListener('mouseup', onMouseUp, false);
+        renderer.domElement.addEventListener('touchstart', onTouchStart, false);
+        renderer.domElement.addEventListener('touchmove', onTouchMove, false);
+        renderer.domElement.addEventListener('touchend', onTouchEnd, false);
 
-    dragPlane = new THREE.Plane();
+        dragPlane = new THREE.Plane();
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-    scene.add(ambientLight);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-    directionalLight.position.set(5, 10, 7.5);
-    scene.add(directionalLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        directionalLight.position.set(5, 10, 7.5);
+        scene.add(directionalLight);
 
-    window.addEventListener('resize', onWindowResize, false);
+        window.addEventListener('resize', onWindowResize, false);
 
-    const fileInput = document.getElementById('fileInput');
-    fileInput.addEventListener('change', onFileSelected, false);
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) { // Check if fileInput exists before adding listener
+            fileInput.addEventListener('change', onFileSelected, false);
+            console.log("initThreeJS: Event listener for 'fileInput' attached.");
+            showStatus("File input ready.", false, true); // New diagnostic message
+        } else {
+            console.error("initThreeJS: fileInput element not found!");
+            showStatus("Error: File input element missing from page.", true);
+        }
 
-    statusElement = document.getElementById('statusMessage');
+        statusElement = document.getElementById('statusMessage');
+        if (!statusElement) {
+            console.warn('initThreeJS: statusMessage element not found in the DOM. Status messages will use alerts.');
+            // showStatus will automatically use alert if statusElement is null.
+        }
+        console.log("initThreeJS: Graphics initialization complete.");
+    } catch (error) {
+        console.error("Critical error during graphics initialization (initThreeJS):", error);
+        showStatus("Critical error during graphics initialization. Check console for details.", true);
+    }
 }
 
 /**
  * Initializes the Ammo.js physics world and its components.
  */
 function initAmmo(AmmoLib) {
-    Ammo = AmmoLib;
-    tmpTransform = new Ammo.btTransform();
-
-    collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
-    dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-    broadphase = new Ammo.btDbvtBroadphase();
-    solver = new Ammo.btSequentialImpulseConstraintSolver();
-    physicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
-    physicsWorld.setGravity(new Ammo.btVector3(0, -9.82, 0));
-
+    window.Ammo = AmmoLib; // Explicitly assign to window.Ammo for clarity
+    console.log("initAmmo: Initializing physics...");
+    tmpTransform = new window.Ammo.btTransform();
+    collisionConfiguration = new window.Ammo.btDefaultCollisionConfiguration();
+    dispatcher = new window.Ammo.btCollisionDispatcher(collisionConfiguration);
+    broadphase = new window.Ammo.btDbvtBroadphase();
+    solver = new window.Ammo.btSequentialImpulseConstraintSolver();
+    physicsWorld = new window.Ammo.btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+    physicsWorld.setGravity(new window.Ammo.btVector3(0, -9.82, 0));
     createGroundPlane();
     createSimpleArm();
     createIKTargetMarker();
+    console.log("initAmmo: Physics initialized.");
+    showStatus("Physics engine loaded and initialized.", false, true);
 }
 
 /**
  * Main initialization sequence.
  */
 function init() {
-    initThreeJS();
-
-    Ammo().then(function (AmmoLib) {
+    console.log("init: Script execution started.");
+    showStatus("Main script running...", false, true); // Existing robust showStatus will be applied later
+    initThreeJS(); // Existing initThreeJS will be updated later
+    console.log("init: Attempting to load Ammo.js...");
+    Ammo().then(function (AmmoLib) { // Ammo() is from ammo.wasm.js
+        console.log("init: Ammo.js library loaded successfully.");
         initAmmo(AmmoLib);
         animate();
     }).catch(e => {
-        console.error("Error loading Ammo.js:", e);
-        showStatus("Fatal Error: Could not load Physics Engine (Ammo.js). Some features will be disabled.", true);
+        console.error("init: Error loading Ammo.js:", e);
+        showStatus("Fatal Error: Could not load Physics Engine (Ammo.js). Check console.", true);
         animate();
     });
 }
@@ -117,17 +139,27 @@ function init() {
  * Displays a status message on the screen.
  */
 function showStatus(message, isError = false, isSuccess = false) {
-    if (!statusElement) return;
-    statusElement.textContent = message;
-    statusElement.style.display = 'block';
-    statusElement.classList.remove('error', 'success');
-    if (isError) {
-        statusElement.classList.add('error');
-    } else if (isSuccess) {
-        statusElement.classList.add('success');
+    if (!statusElement) {
+        console.error('statusElement not found by showStatus. Fallback alert for message: ' + message);
+        alert('Status: ' + message); // Fallback to alert
+        return;
     }
-    if (!isError) {
-        setTimeout(hideStatus, isSuccess ? 2000 : 4000); // Shorter for success, bit longer for info
+    try {
+        statusElement.textContent = message;
+        statusElement.style.display = 'block';
+        statusElement.classList.remove('error', 'success'); // Ensure classes are reset before adding
+        if (isError) {
+            statusElement.classList.add('error');
+        } else if (isSuccess) {
+            statusElement.classList.add('success');
+        }
+        if (!isError) { // Errors shown via statusElement will persist until the next status message
+            setTimeout(hideStatus, isSuccess ? 2000 : 4000);
+        }
+    } catch (e) {
+        console.error('Error within showStatus trying to update statusElement:', e);
+        console.error('Original message was:', message);
+        alert('Status (div update failed): ' + message); // Fallback alert
     }
 }
 
@@ -135,8 +167,14 @@ function showStatus(message, isError = false, isSuccess = false) {
  * Hides the status message.
  */
 function hideStatus() {
-    if (!statusElement) return;
-    statusElement.style.display = 'none';
+    if (!statusElement) {
+        return; // No fallback needed if statusElement wasn't found for hiding
+    }
+    try {
+        statusElement.style.display = 'none';
+    } catch (e) {
+        console.error('Error within hideStatus:', e);
+    }
 }
 
 
@@ -144,16 +182,17 @@ function hideStatus() {
  * Creates a static ground plane.
  */
 function createGroundPlane() {
+    if (!window.Ammo) return;
     const groundGeometry = new THREE.BoxGeometry(10, 0.5, 10);
     const groundMaterial = new THREE.MeshPhongMaterial({ color: 0x444444 });
     const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
     groundMesh.position.set(0, -0.25, 0);
     scene.add(groundMesh);
 
-    const groundShape = new Ammo.btBoxShape(new Ammo.btVector3(5, 0.25, 5));
-    let transform = new Ammo.btTransform();
+    const groundShape = new window.Ammo.btBoxShape(new window.Ammo.btVector3(5, 0.25, 5));
+    let transform = new window.Ammo.btTransform();
     transform.setIdentity();
-    transform.setOrigin(new Ammo.btVector3(0, -0.25, 0));
+    transform.setOrigin(new window.Ammo.btVector3(0, -0.25, 0));
     const groundBody = createRigidBody(0, transform, groundShape, groundMesh);
     groundBody.setFriction(0.9);
 }
@@ -162,6 +201,7 @@ function createGroundPlane() {
  * Creates a simple 2-link programmatic robot arm.
  */
 function createSimpleArm() {
+    if (!window.Ammo) return;
     const baseMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
     const armMaterial = new THREE.MeshPhongMaterial({ color: 0xaaaaaa });
 
@@ -180,39 +220,39 @@ function createSimpleArm() {
     lowerArm.position.set(0, 2, 0);
     scene.add(lowerArm);
 
-    const baseShape = new Ammo.btBoxShape(new Ammo.btVector3(0.25, 0.25, 0.25));
-    const armSegmentShape = new Ammo.btBoxShape(new Ammo.btVector3(0.1, 0.5, 0.1));
+    const baseShape = new window.Ammo.btBoxShape(new window.Ammo.btVector3(0.25, 0.25, 0.25));
+    const armSegmentShape = new window.Ammo.btBoxShape(new window.Ammo.btVector3(0.1, 0.5, 0.1));
 
-    let transform = new Ammo.btTransform();
+    let transform = new window.Ammo.btTransform();
 
     transform.setIdentity();
-    transform.setOrigin(new Ammo.btVector3(0, 0.25, 0));
+    transform.setOrigin(new window.Ammo.btVector3(0, 0.25, 0));
     ammoArmBase = createRigidBody(0, transform, baseShape, armBase);
     ammoArmBase.setFriction(0.8);
 
     transform.setIdentity();
-    transform.setOrigin(new Ammo.btVector3(0, 1, 0));
+    transform.setOrigin(new window.Ammo.btVector3(0, 1, 0));
     ammoUpperArm = createRigidBody(1, transform, armSegmentShape, upperArm);
     ammoUpperArm.setFriction(0.8);
     ammoUpperArm.setRestitution(0.1);
 
     transform.setIdentity();
-    transform.setOrigin(new Ammo.btVector3(0, 2, 0));
+    transform.setOrigin(new window.Ammo.btVector3(0, 2, 0));
     ammoLowerArm = createRigidBody(1, transform, armSegmentShape, lowerArm);
     ammoLowerArm.setFriction(0.8);
     ammoLowerArm.setRestitution(0.1);
 
-    const pivotA_H1 = new Ammo.btVector3(0, 0.25, 0);
-    const pivotB_H1 = new Ammo.btVector3(0, -0.5, 0);
-    const axis_H1 = new Ammo.btVector3(0, 0, 1);
-    hinge1 = new Ammo.btHingeConstraint(ammoArmBase, ammoUpperArm, pivotA_H1, pivotB_H1, axis_H1, axis_H1, false);
+    const pivotA_H1 = new window.Ammo.btVector3(0, 0.25, 0);
+    const pivotB_H1 = new window.Ammo.btVector3(0, -0.5, 0);
+    const axis_H1 = new window.Ammo.btVector3(0, 0, 1);
+    hinge1 = new window.Ammo.btHingeConstraint(ammoArmBase, ammoUpperArm, pivotA_H1, pivotB_H1, axis_H1, axis_H1, false);
     hinge1.setLimit(-Math.PI / 2, Math.PI / 2, 0.9, 0.3, 1.0);
     physicsWorld.addConstraint(hinge1, true);
 
-    const pivotA_H2 = new Ammo.btVector3(0, 0.5, 0);
-    const pivotB_H2 = new Ammo.btVector3(0, -0.5, 0);
-    const axis_H2 = new Ammo.btVector3(0, 0, 1);
-    hinge2 = new Ammo.btHingeConstraint(ammoUpperArm, ammoLowerArm, pivotA_H2, pivotB_H2, axis_H2, axis_H2, false);
+    const pivotA_H2 = new window.Ammo.btVector3(0, 0.5, 0);
+    const pivotB_H2 = new window.Ammo.btVector3(0, -0.5, 0);
+    const axis_H2 = new window.Ammo.btVector3(0, 0, 1);
+    hinge2 = new window.Ammo.btHingeConstraint(ammoUpperArm, ammoLowerArm, pivotA_H2, pivotB_H2, axis_H2, axis_H2, false);
     hinge2.setLimit(-Math.PI / 2, Math.PI / 2, 0.9, 0.3, 1.0);
     physicsWorld.addConstraint(hinge2, true);
 }
@@ -221,15 +261,16 @@ function createSimpleArm() {
  * Helper function to create an Ammo.js rigid body.
  */
 function createRigidBody(mass, transform, shape, threeObject) {
-    const localInertia = new Ammo.btVector3(0, 0, 0);
+    if (!window.Ammo) return null; // Should not happen if called after initAmmo
+    const localInertia = new window.Ammo.btVector3(0, 0, 0);
     if (mass > 0) {
         shape.calculateLocalInertia(mass, localInertia);
     }
-    const motionState = new Ammo.btDefaultMotionState(transform);
-    const rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, shape, localInertia);
-    const body = new Ammo.btRigidBody(rbInfo);
+    const motionState = new window.Ammo.btDefaultMotionState(transform);
+    const rbInfo = new window.Ammo.btRigidBodyConstructionInfo(mass, motionState, shape, localInertia);
+    const body = new window.Ammo.btRigidBody(rbInfo);
 
-    body.setActivationState(4);
+    body.setActivationState(4); // Corresponds to DISABLE_DEACTIVATION
     body.threeObject = threeObject;
     physicsWorld.addRigidBody(body);
 
@@ -256,18 +297,23 @@ function createIKTargetMarker() {
  * in Ammo.js.
  */
 function setupIK() {
-    if (p2pConstraint && physicsWorld) {
+    if (!window.Ammo || !physicsWorld) return;
+    if (p2pConstraint) {
         physicsWorld.removeConstraint(p2pConstraint);
-        if (Ammo && typeof p2pConstraint.destroy === 'function') Ammo.destroy(p2pConstraint);
+        if (typeof p2pConstraint.destroy === 'function') { // Ammo.js specific way to check if it's destroyable
+             window.Ammo.destroy(p2pConstraint);
+        } else if (typeof window.Ammo._free === 'function') { // Fallback for some versions
+             window.Ammo._free(p2pConstraint);
+        }
         p2pConstraint = null;
     }
-    if (!ammoLowerArm || !physicsWorld) return;
+    if (!ammoLowerArm) return;
 
-    const pivotInLowerArm = new Ammo.btVector3(0, 0.5, 0);
-    p2pConstraint = new Ammo.btPoint2PointConstraint(ammoLowerArm, pivotInLowerArm);
+    const pivotInLowerArm = new window.Ammo.btVector3(0, 0.5, 0); // Pivot point in the lower arm's local frame
+    p2pConstraint = new window.Ammo.btPoint2PointConstraint(ammoLowerArm, pivotInLowerArm);
     physicsWorld.addConstraint(p2pConstraint);
-
-    p2pConstraint.setPivotB(new Ammo.btVector3(ikTargetPos.x, ikTargetPos.y, ikTargetPos.z));
+    // The target position is in world space, so setPivotB needs a world space coordinate.
+    p2pConstraint.setPivotB(new window.Ammo.btVector3(ikTargetPos.x, ikTargetPos.y, ikTargetPos.z));
 }
 
 /**
@@ -365,6 +411,11 @@ function onTouchEnd() { handlePointerUp(); }
  * Handles the selection of a file (URDF or OBJ).
  */
 function onFileSelected(event) {
+    console.log(`onFileSelected: Event triggered. Number of files: ${event.target.files.length}`);
+    if (event.target.files.length > 0) {
+        console.log(`onFileSelected: File selected - Name: ${event.target.files[0].name}, Size: ${event.target.files[0].size}`);
+        showStatus(`File selected: ${event.target.files[0].name}`, false, true);
+    }
     const file = event.target.files[0];
     if (!file) return;
 
@@ -391,16 +442,24 @@ function onFileSelected(event) {
         scene.remove(loadedModel);
         loadedModel = null;
     }
-    if (p2pConstraint && physicsWorld) {
+    if (p2pConstraint && physicsWorld && window.Ammo) {
         physicsWorld.removeConstraint(p2pConstraint);
-        if (Ammo && typeof p2pConstraint.destroy === 'function') Ammo.destroy(p2pConstraint);
+        if (typeof p2pConstraint.destroy === 'function') {
+            window.Ammo.destroy(p2pConstraint);
+        } else if (typeof window.Ammo._free === 'function') {
+            window.Ammo._free(p2pConstraint);
+        }
         p2pConstraint = null;
     }
-    if (physicsWorld && Ammo) {
+    if (physicsWorld && window.Ammo) {
         for (let i = rigidBodies.length - 1; i >= 0; i--) {
             const body = rigidBodies[i];
             physicsWorld.removeRigidBody(body);
-            if (typeof body.destroy === 'function') Ammo.destroy(body);
+            if (typeof body.destroy === 'function') { // Check if body has destroy method
+                window.Ammo.destroy(body);
+            } else if (typeof window.Ammo._free === 'function') { // Fallback for some versions
+                 window.Ammo._free(body);
+            }
         }
     }
     rigidBodies.length = 0;
@@ -627,16 +686,14 @@ function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
 
-    if (physicsWorld && ammoLowerArm && armBase && armBase.visible) {
-        if (!p2pConstraint) {
+    if (physicsWorld && window.Ammo && armBase && armBase.visible) {
+        if (!p2pConstraint && ammoLowerArm) {
             setupIK();
         }
         if (p2pConstraint) {
-             p2pConstraint.setPivotB(new Ammo.btVector3(ikTargetPos.x, ikTargetPos.y, ikTargetPos.z));
+             p2pConstraint.setPivotB(new window.Ammo.btVector3(ikTargetPos.x, ikTargetPos.y, ikTargetPos.z));
         }
-
         physicsWorld.stepSimulation(deltaTime, 10, 1/60);
-
         for (let i = 0; i < rigidBodies.length; i++) {
             const body = rigidBodies[i];
             if (body.threeObject && body.threeObject.visible) {
@@ -651,7 +708,10 @@ function animate() {
             }
         }
     }
-    renderer.render(scene, camera);
+    if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
 }
 
 init();
+console.log("main.js: Reached end of script. init() should have been called.");
