@@ -432,7 +432,8 @@ function onFileSelected(event) {
                     const ext = resolvedPath.split('.').pop().toLowerCase();
                     let loader;
 
-                    const basePathForSubloader = urdfLoader.workingPath || '';
+                    const basePathForSubloader = urdfLoader.path || '';
+                    console.log('[URDF Resource] Using base path for sub-loader (from urdfLoader.path): "' + basePathForSubloader + '"');
                     console.log(`[URDF Resource] Trying to load: "${resolvedPath}", Extension: ${ext}, Base for sub-loader: "${basePathForSubloader}"`);
 
                     const placeholderMaterial = new THREE.MeshPhongMaterial({color: Math.random() * 0xffffff, wireframe: true, name: `Placeholder for ${resolvedPath}`});
@@ -496,12 +497,24 @@ function onFileSelected(event) {
                 };
 
                 console.log("[URDFLoad] Attempting to parse URDF data for:", file.name);
-                loadedModel = urdfLoader.parse(e.target.result, file.name);
+                let urdfParsePath = file.name;
+                if (file.name.toLowerCase() === 'go2_description.urdf') {
+                    urdfParsePath = 'URDF/' + file.name;
+                    console.log('[URDFLoad] Detected go2_description.urdf, setting parse path to: ' + urdfParsePath);
+                }
+                loadedModel = urdfLoader.parse(e.target.result, urdfParsePath);
 
                 if (loadedModel) {
                     console.log("[URDFLoad] URDF model parsed successfully:", loadedModel.name || filename);
                     showStatus(`Parsed "${filename}". Loading meshes...`);
                     scene.add(loadedModel);
+
+                    if (file.name.toLowerCase() === 'go2_description.urdf') {
+                        const meshLocationMessage = "For 'go2_description.urdf', ensure DAE mesh files (base.dae, hip.dae, etc.) are in 'URDF/dae/' relative to index.html.";
+                        showStatus(meshLocationMessage, false); // 'false' for not an error
+                        console.log("[URDFLoad] User guidance: " + meshLocationMessage);
+                    }
+
                     fitCameraToObject(loadedModel, 2.5);
                     armElements.forEach(el => { if (el) el.visible = false; });
                     showStatus(`URDF "${filename}" structure loaded. Meshes loading... Check console.`, false, false);
