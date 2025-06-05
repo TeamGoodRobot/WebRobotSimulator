@@ -27,7 +27,7 @@ window.THREE = (function() {
     THREE.Color.prototype.set = function(r,g,b) { this.r=r; this.g=g; this.b=b; };
     THREE.Scene = function() { console.log('THREE.Scene stub created'); this.background=null; this.children=[]; this.add = function(obj){this.children.push(obj);}; this.remove = function(obj){this.children = this.children.filter(o => o !== obj);};};
     THREE.PerspectiveCamera = function() { console.log('THREE.PerspectiveCamera stub created'); this.position = new THREE.Vector3(); this.lookAt=function(){}; this.updateProjectionMatrix=function(){}; this.getWorldDirection=function(v){ return v.set(0,0,-1);}; };
-    THREE.WebGLRenderer = function() { console.log('THREE.WebGLRenderer stub created'); this.domElement = { addEventListener: function(){}, style: {} }; this.setSize = function(){}; this.render = function(){}; };
+    THREE.WebGLRenderer = function() { console.log('THREE.WebGLRenderer stub created'); this.domElement = document.createElement('canvas'); this.domElement.width = 300; this.domElement.height = 150; console.log('THREE.WebGLRenderer stub: created canvas domElement'); this.setSize = function(w,h){ console.log('THREE.WebGLRenderer stub: setSize called with', w, h); this.domElement.width = w; this.domElement.height = h; }; this.render = function(s,c){ console.log('THREE.WebGLRenderer stub: render called'); }; };
     THREE.AmbientLight = function() { console.log('THREE.AmbientLight stub created'); };
     THREE.DirectionalLight = function() { console.log('THREE.DirectionalLight stub created'); this.position = new THREE.Vector3(); };
     THREE.BoxGeometry = function() { console.log('THREE.BoxGeometry stub created'); };
