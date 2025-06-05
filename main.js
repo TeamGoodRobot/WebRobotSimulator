@@ -1,3 +1,9 @@
+import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
+import { STLLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/STLLoader.js';
+import { OBJLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/OBJLoader.js';
+import { ColladaLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/ColladaLoader.js';
+import { URDFLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/URDFLoader.js';
+
 // --- Global Variables ---
 
 // Three.js Core Components
@@ -127,15 +133,11 @@ function init() {
         alert("Critical Error: THREE.js core library not loaded. Application cannot start. Check browser console (F12) for Network errors.");
         return; // Halt execution
     }
-    if (typeof THREE.URDFLoader === 'undefined') {
-        const criticalMessage = "THREE.URDFLoader is undefined! URDFLoader.js likely failed to load or is incorrect. Check Network tab in browser console (F12).";
+    if (typeof URDFLoader === 'undefined') { // Checking the imported binding
+        const criticalMessage = "URDFLoader is undefined! The import from URDFLoader.js might have failed. Check Network tab and module paths.";
         console.error(criticalMessage);
-        // Attempt to use showStatus, which will fallback to alert if statusElement isn't ready
-        // (initThreeJS, which initializes statusElement, is called after this check)
-        // So, an alert is more reliable here.
         alert(criticalMessage);
-        // Do not return yet, allow initThreeJS to run to set up basic scene and status element for other messages.
-        // The URDF loading will fail later, but at least some UI might appear.
+        // Decide if to halt or not, similar to before.
     }
 
     showStatus("Main script running...", false, true); // This message might be overridden by the alert above if URDFLoader is missing.
@@ -491,7 +493,7 @@ function onFileSelected(event) {
         reader.onload = function (e) {
             showStatus(`Reading URDF file "${filename}"...`);
             try {
-                const urdfLoader = new THREE.URDFLoader();
+                const urdfLoader = new URDFLoader();
                 urdfLoader.workingPath = currentModelBasePath;
                 console.log(`[URDFLoad] Set URDFLoader.workingPath to: "${urdfLoader.workingPath}"`);
 
@@ -535,7 +537,7 @@ function onFileSelected(event) {
                     };
 
                     if (ext === 'stl' || ext === 'stla' || ext === 'stlb') {
-                        loader = new THREE.STLLoader(manager);
+                        loader = new STLLoader(manager);
                         if (basePathForSubloader) loader.setPath(basePathForSubloader);
                         loader.load(resolvedPath,
                             geometry => {
@@ -547,7 +549,7 @@ function onFileSelected(event) {
                             meshOnError
                         );
                     } else if (ext === 'obj') {
-                        loader = new THREE.OBJLoader(manager);
+                        loader = new OBJLoader(manager);
                         if (basePathForSubloader) loader.setPath(basePathForSubloader);
                         loader.load(resolvedPath,
                             obj => { meshOnSuccess(obj, "OBJ"); },
@@ -555,7 +557,7 @@ function onFileSelected(event) {
                             meshOnError
                         );
                     } else if (ext === 'dae') {
-                        loader = new THREE.ColladaLoader(manager);
+                        loader = new ColladaLoader(manager);
                         if (basePathForSubloader) loader.setPath(basePathForSubloader);
                         loader.load(resolvedPath,
                             collada => { meshOnSuccess(collada.scene, "DAE"); },
@@ -611,7 +613,7 @@ function onFileSelected(event) {
     } else if (filename.endsWith('.obj')) {
         reader.onload = function (e) {
             try {
-                const objLoader = new THREE.OBJLoader();
+                const objLoader = new OBJLoader();
                 console.log("[OBJLoad] Parsing OBJ content from file:", filename);
                 loadedModel = objLoader.parse(e.target.result);
                 if (loadedModel) {
