@@ -43,39 +43,54 @@ const dragOffset = new THREE.Vector3();
  * Also initializes UI elements like the status message display.
  */
 function initThreeJS() {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xeeeeee);
+    try {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xeeeeee);
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 2, 5);
-    camera.lookAt(0, 0, 0);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 5);
+        camera.lookAt(0, 0, 0);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    renderer.domElement.addEventListener('mousedown', onMouseDown, false);
-    renderer.domElement.addEventListener('mousemove', onMouseMoveGeneral, false);
-    renderer.domElement.addEventListener('mouseup', onMouseUp, false);
-    renderer.domElement.addEventListener('touchstart', onTouchStart, false);
-    renderer.domElement.addEventListener('touchmove', onTouchMove, false);
-    renderer.domElement.addEventListener('touchend', onTouchEnd, false);
+        renderer.domElement.addEventListener('mousedown', onMouseDown, false);
+        renderer.domElement.addEventListener('mousemove', onMouseMoveGeneral, false);
+        renderer.domElement.addEventListener('mouseup', onMouseUp, false);
+        renderer.domElement.addEventListener('touchstart', onTouchStart, false);
+        renderer.domElement.addEventListener('touchmove', onTouchMove, false);
+        renderer.domElement.addEventListener('touchend', onTouchEnd, false);
 
-    dragPlane = new THREE.Plane();
+        dragPlane = new THREE.Plane();
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-    scene.add(ambientLight);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-    directionalLight.position.set(5, 10, 7.5);
-    scene.add(directionalLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        directionalLight.position.set(5, 10, 7.5);
+        scene.add(directionalLight);
 
-    window.addEventListener('resize', onWindowResize, false);
+        window.addEventListener('resize', onWindowResize, false);
 
-    const fileInput = document.getElementById('fileInput');
-    fileInput.addEventListener('change', onFileSelected, false);
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', onFileSelected, false);
 
-    statusElement = document.getElementById('statusMessage');
+        statusElement = document.getElementById('statusMessage');
+        // Add a check here to see if statusElement was found, for early diagnostics
+        if (!statusElement) {
+            console.warn('initThreeJS: statusMessage element not found in the DOM.');
+            // showStatus will also alert if it's not found, but this is an earlier warning.
+        }
+
+    } catch (error) {
+        console.error("Critical error during graphics initialization (initThreeJS):", error);
+        // Use the robust showStatus, which will fallback to alert if statusElement itself was the problem.
+        showStatus("Critical error during graphics initialization. Check console for details.", true);
+        // Optionally, re-throw the error if you want to halt further script execution,
+        // or ensure animate() doesn't run if initThreeJS fails catastrophically.
+        // For now, just reporting it.
+    }
 }
 
 /**
@@ -117,17 +132,31 @@ function init() {
  * Displays a status message on the screen.
  */
 function showStatus(message, isError = false, isSuccess = false) {
-    if (!statusElement) return;
-    statusElement.textContent = message;
-    statusElement.style.display = 'block';
-    statusElement.classList.remove('error', 'success');
-    if (isError) {
-        statusElement.classList.add('error');
-    } else if (isSuccess) {
-        statusElement.classList.add('success');
+    if (!statusElement) {
+        console.error('statusElement not found by showStatus. Fallback alert for message: ' + message);
+        alert('Status: ' + message); // Fallback to alert
+        return;
     }
-    if (!isError) {
-        setTimeout(hideStatus, isSuccess ? 2000 : 4000); // Shorter for success, bit longer for info
+    try {
+        statusElement.textContent = message;
+        statusElement.style.display = 'block';
+        statusElement.classList.remove('error', 'success'); // Ensure classes are reset before adding
+        if (isError) {
+            statusElement.classList.add('error');
+        } else if (isSuccess) {
+            statusElement.classList.add('success');
+        }
+        // Only set timeout to hide if it's not an error and not a success message that should persist longer
+        // OR if it's a success message (which also auto-hides)
+        // Errors shown via statusElement will persist until the next status message or manual hide.
+        if (!isError) {
+             setTimeout(hideStatus, isSuccess ? 2000 : 4000);
+        }
+    } catch (e) {
+        console.error('Error within showStatus trying to update statusElement:', e);
+        console.error('Original message was:', message);
+        // Fallback alert if updating the div fails for some other reason
+        alert('Status (div update failed): ' + message);
     }
 }
 
@@ -135,8 +164,16 @@ function showStatus(message, isError = false, isSuccess = false) {
  * Hides the status message.
  */
 function hideStatus() {
-    if (!statusElement) return;
-    statusElement.style.display = 'none';
+    if (!statusElement) {
+        // No fallback needed if statusElement wasn't found to begin with for hiding
+        return;
+    }
+    try {
+        statusElement.style.display = 'none';
+    } catch (e) {
+        console.error('Error within hideStatus:', e);
+        // If hiding fails, not much to do other than log it.
+    }
 }
 
 
