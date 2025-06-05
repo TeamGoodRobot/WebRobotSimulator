@@ -32,6 +32,10 @@ let p2pConstraint = null;
 
 // Mouse/Touch Interaction for Dragging IK Target
 const raycaster = new THREE.Raycaster();
+console.log("[Debug] Just before new THREE.Vector2(): typeof THREE:", typeof THREE);
+console.log("[Debug] Just before new THREE.Vector2(): THREE itself:", THREE);
+if (THREE) { console.log("[Debug] Just before new THREE.Vector2(): typeof THREE.Vector2:", typeof THREE.Vector2); }
+if (THREE) { console.log("[Debug] Just before new THREE.Vector2(): THREE.Vector2 content:", THREE.Vector2 ? THREE.Vector2.toString() : "undefined or null"); }
 const mouse = new THREE.Vector2();
 let isDraggingTarget = false;
 let dragPlane;
@@ -120,46 +124,50 @@ function initAmmo(AmmoLib) {
  * Main initialization sequence.
  */
 function init() {
-    // statusElement initialization moved here from initThreeJS in a previous step
     statusElement = document.getElementById("statusMessage");
     if (!statusElement) {
         console.warn("init(): statusMessage element not found in DOM on initial check. Alerts will be used by showStatus.");
     }
     console.log("init: Script execution started.");
+    // Pre-emptive checks from previous steps (ensure they are still here or re-add if necessary)
     if (typeof THREE === 'undefined') {
-        console.error("THREE object is undefined! three.min.js (r128) might have failed to load. Application cannot start.");
-        alert("Critical Error: THREE.js core library not loaded. Check browser console (F12) for Network errors.");
+        console.error("THREE object is undefined! three_with_loaders.bundle.js might have failed. Application cannot start.");
+        alert("Critical Error: THREE.js core library not loaded. Application cannot start. Check browser console (F12) for Network errors.");
         return; // Halt execution
     }
-    if (typeof THREE.URDFLoader === 'undefined') { // CORRECTED CHECK for r128
-        const criticalMessage = "THREE.URDFLoader is undefined! URDFLoader.js (r128) might have failed to load. Check Network tab and script tags in index.html.";
+    // Assuming URDFLoader is now globally available via three_with_loaders.bundle.js as window.URDFLoader
+    if (typeof URDFLoader === 'undefined' && typeof window.URDFLoader === 'undefined') {
+        const criticalMessage = "URDFLoader (or window.URDFLoader) is undefined! three_with_loaders.bundle.js did not provide it or failed. Check its content and console.";
         console.error(criticalMessage);
         alert(criticalMessage);
-        // Allow initThreeJS to run to setup basic scene and status element for other messages.
+        // Do not return yet, allow initThreeJS to run.
     }
 
+    // Call showStatus (it should be defined globally or within scope by now if main_app.js is one file)
+    // Note: statusElement is found in initThreeJS. showStatus has alert fallback.
     showStatus("Main script running...", false, true);
-    initThreeJS(); // Original call
-    console.log("init: Attempting to load Ammo.js..."); // Original call
 
-    // Polling logic for Ammo (from previous successful update)
+    initThreeJS(); // Initializes scene, camera, renderer, statusElement
+
     function initializePhysics() {
-        if (typeof Ammo === 'function') {
+        if (typeof Ammo === 'function') { // Check if Ammo global is now a function
             console.log("init (initializePhysics): Ammo global function is defined. Attempting to load Ammo.js physics engine...");
             Ammo().then(function (AmmoLib) {
                 console.log("init (initializePhysics): Ammo.js library loaded successfully.");
-                initAmmo(AmmoLib);
-                animate();
+                initAmmo(AmmoLib); // initAmmo assigns window.Ammo = AmmoLib
+                animate(); // Start animation loop AFTER physics is ready
             }).catch(e => {
                 console.error("init (initializePhysics): Error loading Ammo.js physics engine:", e);
                 showStatus("Fatal Error: Could not load Physics Engine (Ammo.js). Check console.", true);
-                animate();
+                animate(); // Still call animate to render scene, even if physics is off
             });
         } else {
             console.log("init (initializePhysics): Ammo global function not yet defined. Retrying in 100ms...");
-            setTimeout(initializePhysics, 100);
+            setTimeout(initializePhysics, 100); // Retry after a short delay
         }
     }
+
+    // Start the physics initialization process
     console.log("init: Scheduling physics initialization (may involve polling for Ammo function)...");
     initializePhysics();
 }
@@ -503,7 +511,7 @@ function onFileSelected(event) {
         reader.onload = function (e) {
             showStatus(`Reading URDF file "${filename}"...`);
             try {
-                const urdfLoader = new THREE.URDFLoader();
+                const urdfLoader = new URDFLoader();
                 urdfLoader.workingPath = currentModelBasePath;
                 console.log(`[URDFLoad] Set URDFLoader.workingPath to: "${urdfLoader.workingPath}"`);
 
@@ -547,7 +555,7 @@ function onFileSelected(event) {
                     };
 
                     if (ext === 'stl' || ext === 'stla' || ext === 'stlb') {
-                        loader = new THREE.STLLoader(manager);
+                        loader = new STLLoader(manager);
                         if (basePathForSubloader) loader.setPath(basePathForSubloader);
                         loader.load(resolvedPath,
                             geometry => {
@@ -559,7 +567,7 @@ function onFileSelected(event) {
                             meshOnError
                         );
                     } else if (ext === 'obj') {
-                        loader = new THREE.OBJLoader(manager);
+                        loader = new OBJLoader(manager);
                         if (basePathForSubloader) loader.setPath(basePathForSubloader);
                         loader.load(resolvedPath,
                             obj => { meshOnSuccess(obj, "OBJ"); },
@@ -567,7 +575,7 @@ function onFileSelected(event) {
                             meshOnError
                         );
                     } else if (ext === 'dae') {
-                        loader = new THREE.ColladaLoader(manager);
+                        loader = new ColladaLoader(manager);
                         if (basePathForSubloader) loader.setPath(basePathForSubloader);
                         loader.load(resolvedPath,
                             collada => { meshOnSuccess(collada.scene, "DAE"); },
@@ -623,7 +631,7 @@ function onFileSelected(event) {
     } else if (filename.endsWith('.obj')) {
         reader.onload = function (e) {
             try {
-                const objLoader = new THREE.OBJLoader();
+                const objLoader = new OBJLoader();
                 console.log("[OBJLoad] Parsing OBJ content from file:", filename);
                 loadedModel = objLoader.parse(e.target.result);
                 if (loadedModel) {
