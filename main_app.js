@@ -89,11 +89,10 @@ function initThreeJS() {
             showStatus("Error: File input element missing from page.", true);
         }
 
-        statusElement = document.getElementById('statusMessage');
-        if (!statusElement) {
-            console.warn('initThreeJS: statusMessage element not found in the DOM. Status messages will use alerts.');
-            // showStatus will automatically use alert if statusElement is null.
-        }
+        // statusElement = document.getElementById('statusMessage'); // REMOVED
+        // if (!statusElement) { // REMOVED
+        //     console.warn('initThreeJS: statusMessage element not found in the DOM. Status messages will use alerts.'); // REMOVED
+        // } // REMOVED
         console.log("initThreeJS: Graphics initialization complete.");
     } catch (error) {
         console.error("Critical error during graphics initialization (initThreeJS):", error);
@@ -125,6 +124,10 @@ function initAmmo(AmmoLib) {
  * Main initialization sequence.
  */
 function init() {
+    statusElement = document.getElementById("statusMessage");
+    if (!statusElement) {
+        console.warn("init(): statusMessage element not found in DOM on initial check. Alerts will be used by showStatus.");
+    }
     console.log("init: Script execution started.");
     // Pre-emptive checks from previous steps (ensure they are still here or re-add if necessary)
     if (typeof THREE === 'undefined') {
