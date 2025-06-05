@@ -122,31 +122,47 @@ function initAmmo(AmmoLib) {
  */
 function init() {
     console.log("init: Script execution started.");
-    // Add pre-emptive checks here:
+    // Pre-emptive checks from previous steps (ensure they are still here or re-add if necessary)
     if (typeof THREE === 'undefined') {
-        console.error("THREE object is undefined! three.min.js might have failed to load. Application cannot start.");
+        console.error("THREE object is undefined! three_with_loaders.bundle.js might have failed. Application cannot start.");
         alert("Critical Error: THREE.js core library not loaded. Application cannot start. Check browser console (F12) for Network errors.");
         return; // Halt execution
     }
-    if (typeof URDFLoader === 'undefined') { // Checking the imported binding
-        const criticalMessage = "URDFLoader is undefined! The import from URDFLoader.js might have failed. Check Network tab and module paths.";
+    // Assuming URDFLoader is now globally available via three_with_loaders.bundle.js as window.URDFLoader
+    if (typeof URDFLoader === 'undefined' && typeof window.URDFLoader === 'undefined') {
+        const criticalMessage = "URDFLoader (or window.URDFLoader) is undefined! three_with_loaders.bundle.js did not provide it or failed. Check its content and console.";
         console.error(criticalMessage);
         alert(criticalMessage);
-        // Decide if to halt or not, similar to before.
+        // Do not return yet, allow initThreeJS to run.
     }
 
-    showStatus("Main script running...", false, true); // This message might be overridden by the alert above if URDFLoader is missing.
-    initThreeJS();
-    console.log("init: Attempting to load Ammo.js...");
-    Ammo().then(function (AmmoLib) { // Ammo() is from ammo.wasm.js
-        console.log("init: Ammo.js library loaded successfully.");
-        initAmmo(AmmoLib);
-        animate();
-    }).catch(e => {
-        console.error("init: Error loading Ammo.js:", e);
-        showStatus("Fatal Error: Could not load Physics Engine (Ammo.js). Check console.", true);
-        animate(); // Still call animate to render scene, even if physics is off
-    });
+    // Call showStatus (it should be defined globally or within scope by now if main_app.js is one file)
+    // Note: statusElement is found in initThreeJS. showStatus has alert fallback.
+    showStatus("Main script running...", false, true);
+
+    initThreeJS(); // Initializes scene, camera, renderer, statusElement
+
+    function initializePhysics() {
+        if (typeof Ammo === 'function') { // Check if Ammo global is now a function
+            console.log("init (initializePhysics): Ammo global function is defined. Attempting to load Ammo.js physics engine...");
+            Ammo().then(function (AmmoLib) {
+                console.log("init (initializePhysics): Ammo.js library loaded successfully.");
+                initAmmo(AmmoLib); // initAmmo assigns window.Ammo = AmmoLib
+                animate(); // Start animation loop AFTER physics is ready
+            }).catch(e => {
+                console.error("init (initializePhysics): Error loading Ammo.js physics engine:", e);
+                showStatus("Fatal Error: Could not load Physics Engine (Ammo.js). Check console.", true);
+                animate(); // Still call animate to render scene, even if physics is off
+            });
+        } else {
+            console.log("init (initializePhysics): Ammo global function not yet defined. Retrying in 100ms...");
+            setTimeout(initializePhysics, 100); // Retry after a short delay
+        }
+    }
+
+    // Start the physics initialization process
+    console.log("init: Scheduling physics initialization (may involve polling for Ammo function)...");
+    initializePhysics();
 }
 
 /**
