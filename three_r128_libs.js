@@ -1,8 +1,8 @@
-// three_r128_libs.js - More comprehensive stubs for Three.js r128 components
+// three_r128_libs.js - More comprehensive stubs for Three.js r128 components (v2)
 
 var THREE = (function() {
     console.log('THREE.js (r128 stub) initializing...');
-    const THREE_INTERNAL = { REVISION: '128-comprehensive-stub' };
+    const THREE_INTERNAL = { REVISION: '128-comprehensive-stub-v2' }; // Version bump
 
     // --- Core Math Components ---
     THREE_INTERNAL.Vector2 = function(x, y) { this.x = x || 0; this.y = y || 0; };
@@ -25,7 +25,6 @@ var THREE = (function() {
         normalize: function() { const l = this.length() || 1; this.x /= l; this.y /= l; this.z /= l; return this;},
         clone: function() { return new THREE_INTERNAL.Vector3(this.x, this.y, this.z); },
         dot: function(v) { return this.x * v.x + this.y * v.y + this.z * v.z; }
-        // applyQuaternion will be added after Quaternion is defined
     };
 
     THREE_INTERNAL.Quaternion = function(x,y,z,w) { this.x=x||0; this.y=y||0; this.z=z||0; this.w=(w===undefined)?1:w; };
@@ -33,11 +32,11 @@ var THREE = (function() {
         set: function(x,y,z,w) {this.x=x; this.y=y; this.z=z; this.w=w; return this;},
         copy: function(q) {this.x=q.x; this.y=q.y; this.z=q.z; this.w=q.w; return this;},
         clone: function() { return new THREE_INTERNAL.Quaternion(this.x, this.y, this.z, this.w); },
-        multiplyQuaternions: function(a,b){ /*stub*/ this.copy(a); return this;},
-        premultiply: function(q){ /*stub*/ return this; },
-        setFromEuler: function(e){ /*stub*/ return this;},
-        normalize: function() {/*stub*/ return this;},
-        _applyToVector3: function(vector) { /*stubbed actual math for effect*/ const x=vector.x,y=vector.y,z=vector.z; const qx=this.x,qy=this.y,qz=this.z,qw=this.w; const ix=qw*x+qy*z-qz*y,iy=qw*y+qz*x-qx*z,iz=qw*z+qx*y-qy*x,iw=-qx*x-qy*y-qz*z; vector.x=ix*qw+iw*-qx+iy*-qz-iz*-qy;vector.y=iy*qw+iw*-qy+iz*-qx-ix*-qz;vector.z=iz*qw+iw*-qz+ix*-qy-iy*-qx; return vector; }
+        multiplyQuaternions: function(a,b){ this.copy(a); return this; /*stub*/},
+        premultiply: function(q){ return this; /*stub*/},
+        setFromEuler: function(e){ return this; /*stub*/},
+        normalize: function() {return this; /*stub*/},
+        _applyToVector3: function(vector) { const x=vector.x,y=vector.y,z=vector.z; const qx=this.x,qy=this.y,qz=this.z,qw=this.w; const ix=qw*x+qy*z-qz*y,iy=qw*y+qz*x-qx*z,iz=qw*z+qx*y-qy*x,iw=-qx*x-qy*y-qz*z; vector.x=ix*qw+iw*-qx+iy*-qz-iz*-qy;vector.y=iy*qw+iw*-qy+iz*-qx-ix*-qz;vector.z=iz*qw+iw*-qz+ix*-qy-iy*-qx; return vector; }
     };
     THREE_INTERNAL.Vector3.prototype.applyQuaternion = function(q) { return q._applyToVector3(this); };
 
@@ -46,7 +45,20 @@ var THREE = (function() {
     THREE_INTERNAL.Color = function(r, g, b) { if (g === undefined && b === undefined) { this.setHex(r); } else { this.setRGB(r,g,b); } };
     THREE_INTERNAL.Color.prototype = { setRGB: function(r,g,b) { this.r=r; this.g=g; this.b=b; return this;}, setHex: function(hex) { hex = Math.floor(hex); this.r = (hex >> 16 & 255) / 255; this.g = (hex >> 8 & 255) / 255; this.b = (hex & 255) / 255; return this;}, clone: function() { return new THREE_INTERNAL.Color(this.r, this.g, this.b); } };
 
-    THREE_INTERNAL.Object3D = function() { this.position = new THREE_INTERNAL.Vector3(); this.quaternion = new THREE_INTERNAL.Quaternion(); this.children = []; this.up = new THREE_INTERNAL.Vector3(0,1,0); this.name = ''; this.visible = true; this.parent = null; this.add = function(child) { if (child === this) { console.error('THREE.Object3D.add: An object can\\'t be added as a child of itself.'); return this;} this.children.push(child); child.parent = this; return this; }; this.remove = function(child) { const index = this.children.indexOf(child); if (index !== -1) { child.parent = null; this.children.splice(index, 1);}}; this.lookAt = function(vector_or_x, y, z) { console.log('Object3D.lookAt called (stub)');}; this.getWorldDirection = function(target) { if(!target) target=new THREE_INTERNAL.Vector3(); return target.set(0,0,-1).applyQuaternion(this.quaternion);}; this.traverse = function(callback) { callback(this); for(let i=0; i<this.children.length; i++) { this.children[i].traverse(callback); } }; };
+    THREE_INTERNAL.Object3D = function() {
+        this.position = new THREE_INTERNAL.Vector3();
+        this.quaternion = new THREE_INTERNAL.Quaternion();
+        this.children = [];
+        this.up = new THREE_INTERNAL.Vector3(0,1,0);
+        this.name = '';
+        this.visible = true;
+        this.parent = null;
+        this.add = function(child) { if (child === this) { console.error('THREE.Object3D.add: Object cannot be child of itself.'); return this;} this.children.push(child); child.parent = this; return this; }; // Corrected string
+        this.remove = function(child) { const index = this.children.indexOf(child); if (index !== -1) { child.parent = null; this.children.splice(index, 1);}};
+        this.lookAt = function(vector_or_x, y, z) { console.log('Object3D.lookAt called (stub)');};
+        this.getWorldDirection = function(target) { if(!target) target=new THREE_INTERNAL.Vector3(); return target.set(0,0,-1).applyQuaternion(this.quaternion);};
+        this.traverse = function(callback) { callback(this); for(let i=0; i<this.children.length; i++) { this.children[i].traverse(callback); } };
+    };
 
     THREE_INTERNAL.Group = function() { THREE_INTERNAL.Object3D.call(this); this.type = 'Group'; console.log('THREE.Group (r128 stub) created'); };
     THREE_INTERNAL.Group.prototype = Object.assign(Object.create(THREE_INTERNAL.Object3D.prototype), { constructor: THREE_INTERNAL.Group });
@@ -66,7 +78,7 @@ var THREE = (function() {
 
     THREE_INTERNAL.BoxGeometry = function(w,h,d) {this.type='BoxGeometry'; console.log('BoxGeometry (r128 stub) created:',w,h,d);};
     THREE_INTERNAL.SphereGeometry = function(r) {this.type='SphereGeometry'; console.log('SphereGeometry (r128 stub) created:',r);};
-    THREE_INTERNAL.BufferGeometry = function() {this.type='BufferGeometry'; console.log('BufferGeometry (r128 stub) created');}; // Added for STLLoader stub
+    THREE_INTERNAL.BufferGeometry = function() {this.type='BufferGeometry'; console.log('BufferGeometry (r128 stub) created');};
 
     THREE_INTERNAL.MeshPhongMaterial = function(params) { this.type='MeshPhongMaterial'; this.color = (params && params.color) ? params.color : new THREE_INTERNAL.Color(0xffffff); this.wireframe = (params && params.wireframe) || false; this.name = (params && params.name) || ''; console.log('MeshPhongMaterial (r128 stub) created:', params);};
 
@@ -90,10 +102,6 @@ var THREE = (function() {
 })(); // End of THREE IIFE
 
 // --- Loader Stubs (r128, attaching to global THREE) ---
-// These were defined in the previous version of three_r128_libs.js and should be preserved.
-// The subtask will append these if they are not part of the main cat EOF.
-// For this subtask, I will re-define them here to ensure they are present and correct.
-
 THREE.LoadingManager = function ( onLoad, onProgress, onError ) {
     console.log('THREE.LoadingManager (r128 stub) created.');
     this.onLoad = onLoad; this.onProgress = onProgress; this.onError = onError;
@@ -107,11 +115,11 @@ console.log('THREE.LoadingManager (r128 stub) defined.');
 THREE.URDFLoader = function ( manager ) {
     this.manager = ( manager !== undefined ) ? manager : new THREE.LoadingManager();
     console.log('THREE.URDFLoader (r128 stub) created.');
-    this.load = function ( url, onLoad, onProgress, onError ) { console.log('THREE.URDFLoader.load (r128 stub) called for:', url); if (onLoad) { var result = new THREE.Group(); result.name=url; onLoad(result); } };
-    this.parse = function ( text ) { console.log('THREE.URDFLoader.parse (r128 stub) called.'); var result = new THREE.Group(); result.name='parsed_urdf'; return result; };
-    this.loadMeshCb = null; // Will be set by main_app.js
-    this.workingPath = ''; // For compatibility
-    this.path = ''; // For compatibility
+    this.load = function ( url, onLoad, onProgress, onError ) { console.log('THREE.URDFLoader.load (r128 stub) called for:', url); if (onLoad) { var result = new THREE.Group(); result.name=url; onLoad(result); } }; // Changed to use THREE.Group from stub
+    this.parse = function ( text ) { console.log('THREE.URDFLoader.parse (r128 stub) called.'); var result = new THREE.Group(); result.name='parsed_urdf'; return result; }; // Changed to use THREE.Group from stub
+    this.loadMeshCb = null;
+    this.workingPath = '';
+    this.path = '';
 };
 console.log('THREE.URDFLoader (r128 stub) defined.');
 
@@ -120,4 +128,4 @@ THREE.OBJLoader = function (manager) { this.manager = manager || new THREE.Loadi
 THREE.ColladaLoader = function (manager) { this.manager = manager || new THREE.LoadingManager(); console.log('THREE.ColladaLoader (r128 stub) created.'); this.setPath = function(p){this.path=p;}; this.load = function(url, onLoad){ console.log('ColladaLoader (r128 stub) load:', (this.path||'')+url ); onLoad({ scene: new THREE.Group() }); }; };
 console.log('Other loader stubs (r128) defined.');
 
-console.log('three_r128_libs.js (Comprehensive Stubs) executed.');
+console.log('three_r128_libs.js (Comprehensive Stubs v2) executed.');
