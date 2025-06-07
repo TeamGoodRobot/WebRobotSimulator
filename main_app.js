@@ -1,4 +1,4 @@
-
+import * as THREE from './js/libs/three-r140/three.min.js';
 // --- Global Variables ---
 
 // Three.js Core Components
@@ -123,20 +123,24 @@ function init() {
     // statusElement initialization moved here from initThreeJS in a previous step
     statusElement = document.getElementById("statusMessage");
     if (!statusElement) {
-        console.warn("init(): statusMessage element not found in DOM on initial check. Alerts will be used by showStatus.");
+        console.warn("init(): statusMessage element not found in DOM on initialcheck. Alerts will be used by showStatus.");
     }
     console.log("init: Script execution started.");
-    if (typeof THREE === 'undefined') {
-        console.error("THREE object is undefined! three.min.js (r128) might have failed to load. Application cannot start.");
-        alert("Critical Error: THREE.js core library not loaded. Check browser console (F12) for Network errors.");
-        return; // Halt execution
-    }
+    // REMOVED: if (typeof THREE === 'undefined') check, as THREE will be imported.
+
+    // URDFLoader check modification:
+    // The original code checked `typeof THREE.URDFLoader === 'undefined'`.
+    // Since we are commenting out the URDF loading logic for now,
+    // this check can also be commented out or adjusted.
+    // For now, we'll comment it out to avoid premature errors if URDFLoader.js isn't loaded.
+    /*
     if (typeof THREE.URDFLoader === 'undefined') { // CORRECTED CHECK for r128
         const criticalMessage = "THREE.URDFLoader is undefined! URDFLoader.js (r128) might have failed to load. Check Network tab and script tags in index.html.";
         console.error(criticalMessage);
         alert(criticalMessage);
         // Allow initThreeJS to run to setup basic scene and status element for other messages.
     }
+    */
 
     showStatus("Main script running...", false, true);
     initThreeJS(); // Original call
@@ -153,10 +157,10 @@ function init() {
             }).catch(e => {
                 console.error("init (initializePhysics): Error loading Ammo.js physics engine:", e);
                 showStatus("Fatal Error: Could not load Physics Engine (Ammo.js). Check console.", true);
-                animate();
+                animate(); // Still call animate to render scene even if physics fails
             });
         } else {
-            console.log("init (initializePhysics): Ammo global function not yet defined. Retrying in 100ms...");
+            console.log("init (initializePhysics): Ammo global function not yetdefined. Retrying in 100ms...");
             setTimeout(initializePhysics, 100);
         }
     }
@@ -176,7 +180,7 @@ function showStatus(message, isError = false, isSuccess = false) {
     try {
         statusElement.textContent = message;
         statusElement.style.display = 'block';
-        statusElement.classList.remove('error', 'success'); // Ensure classes are reset before adding
+        statusElement.classList.remove('error', 'success'); // Ensure classes arereset before adding
         if (isError) {
             statusElement.classList.add('error');
         } else if (isSuccess) {
@@ -218,7 +222,7 @@ function createGroundPlane() {
     groundMesh.position.set(0, -0.25, 0);
     scene.add(groundMesh);
 
-    const groundShape = new window.Ammo.btBoxShape(new window.Ammo.btVector3(5, 0.25, 5));
+    const groundShape = new window.Ammo.btBoxShape(new window.Ammo.btVector3(5,0.25, 5));
     let transform = new window.Ammo.btTransform();
     transform.setIdentity();
     transform.setOrigin(new window.Ammo.btVector3(0, -0.25, 0));
@@ -273,14 +277,14 @@ function createSimpleArm() {
 
     const pivotA_H1 = new window.Ammo.btVector3(0, 0.25, 0);
     const pivotB_H1 = new window.Ammo.btVector3(0, -0.5, 0);
-    const axis_H1 = new window.Ammo.btVector3(0, 0, 1);
+    const axis_H1 = new window.Ammo.btVector3(0, 0, 1); // Hinge around Z-axis
     hinge1 = new window.Ammo.btHingeConstraint(ammoArmBase, ammoUpperArm, pivotA_H1, pivotB_H1, axis_H1, axis_H1, false);
     hinge1.setLimit(-Math.PI / 2, Math.PI / 2, 0.9, 0.3, 1.0);
     physicsWorld.addConstraint(hinge1, true);
 
     const pivotA_H2 = new window.Ammo.btVector3(0, 0.5, 0);
     const pivotB_H2 = new window.Ammo.btVector3(0, -0.5, 0);
-    const axis_H2 = new window.Ammo.btVector3(0, 0, 1);
+    const axis_H2 = new window.Ammo.btVector3(0, 0, 1); // Hinge around Z-axis
     hinge2 = new window.Ammo.btHingeConstraint(ammoUpperArm, ammoLowerArm, pivotA_H2, pivotB_H2, axis_H2, axis_H2, false);
     hinge2.setLimit(-Math.PI / 2, Math.PI / 2, 0.9, 0.3, 1.0);
     physicsWorld.addConstraint(hinge2, true);
@@ -364,13 +368,14 @@ function handlePointerDown(clientX, clientY) {
         const intersects = raycaster.intersectObject(ikTarget);
         if (intersects.length > 0) {
             isDraggingTarget = true;
-            camera.getWorldDirection(dragPlane.normal);
+            camera.getWorldDirection(dragPlane.normal); // Get camera's view direction
+            // Position the plane at the ikTarget's current position, facing the camera
             dragPlane.setFromNormalAndCoplanarPoint(dragPlane.normal, ikTarget.position);
 
             if (raycaster.ray.intersectPlane(dragPlane, dragOffset)) {
-                 dragOffset.sub(ikTarget.position);
+                 dragOffset.sub(ikTarget.position); // Calculate offset from target's center to intersection point
             } else {
-                 dragOffset.set(0,0,0);
+                 dragOffset.set(0,0,0); // Should not happen if intersectObject succeeded
             }
             renderer.domElement.style.cursor = 'grabbing';
         }
@@ -387,7 +392,7 @@ function handlePointerMove(clientX, clientY) {
 
         const intersection = new THREE.Vector3();
         if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
-            ikTargetPos.copy(intersection.sub(dragOffset));
+            ikTargetPos.copy(intersection.sub(dragOffset)); // Apply offset
             if (ikTarget) ikTarget.position.copy(ikTargetPos);
         }
     }
@@ -398,8 +403,9 @@ function handlePointerMove(clientX, clientY) {
  */
 function handlePointerUp() {
     isDraggingTarget = false;
+    // Update cursor based on whether it's over the target or not
     if (ikTarget && ikTarget.visible) {
-        raycaster.setFromCamera(mouse, camera);
+        raycaster.setFromCamera(mouse, camera); // Use last mouse position
         const intersects = raycaster.intersectObject(ikTarget);
         if (intersects.length > 0) {
             renderer.domElement.style.cursor = 'grab';
@@ -411,12 +417,14 @@ function handlePointerUp() {
     }
 }
 
+// Update onMouseMove to onMouseMoveGeneral to avoid conflict if we add other interactions
 function onMouseDown(event) { handlePointerDown(event.clientX, event.clientY); }
-function onMouseMoveGeneral(event) {
+function onMouseMoveGeneral(event) { // Renamed from onMouseMove
     if (isDraggingTarget) {
         handlePointerMove(event.clientX, event.clientY);
-        return;
+        return; // Don't change cursor if dragging
     }
+    // Update mouse coordinates for hover detection
     updateMouseCoords(event.clientX, event.clientY, mouse);
     raycaster.setFromCamera(mouse, camera);
     if (ikTarget && ikTarget.visible) {
@@ -427,13 +435,13 @@ function onMouseMoveGeneral(event) {
             renderer.domElement.style.cursor = 'default';
         }
     } else {
-        renderer.domElement.style.cursor = 'default';
+        renderer.domElement.style.cursor = 'default'; // Ensure default if target is not visible
     }
 }
 function onMouseUp(event) { handlePointerUp(); }
 function onTouchStart(event) { if (event.touches.length > 0) handlePointerDown(event.touches[0].clientX, event.touches[0].clientY); }
 function onTouchMove(event) { if (event.touches.length > 0) handlePointerMove(event.touches[0].clientX, event.touches[0].clientY); }
-function onTouchEnd() { handlePointerUp(); }
+function onTouchEnd() { handlePointerUp(); } // event is not directly used here
 
 
 /**
@@ -451,11 +459,12 @@ function onFileSelected(event) {
     const filename = file.name.toLowerCase();
     const reader = new FileReader();
 
-    currentModelBasePath = '';
+    currentModelBasePath = ''; // Reset base path
+    // Try to determine base path if served over HTTP/S for relative resources in URDF
     if (window.location.protocol !== 'file:') {
         const pathArray = window.location.pathname.split('/');
-        pathArray.pop();
-        currentModelBasePath = pathArray.join('/') + '/';
+        pathArray.pop(); // Remove filename from path
+        currentModelBasePath = pathArray.join('/') + '/'; // Add trailing slash
         console.log(`[FileLoad] Serving from HTTP/S. Inferred base path for resources: ${currentModelBasePath}`);
     } else {
         console.warn("[FileLoad] Running from local 'file://'. Mesh paths in URDF must be simple relative paths from the URDF's location or absolute URLs to load correctly without a server.");
@@ -467,23 +476,28 @@ function onFileSelected(event) {
     // Initial status message moved to after file protocol check
     showStatus(`Loading "${filename}"...`);
 
+    // Clear previous model and physics objects
     if (loadedModel) {
         scene.remove(loadedModel);
+        // TODO: Properly dispose of model's geometries and materials if they are not shared
         loadedModel = null;
     }
+    // Clear existing point-to-point constraint if any
     if (p2pConstraint && physicsWorld && window.Ammo) {
         physicsWorld.removeConstraint(p2pConstraint);
         if (typeof p2pConstraint.destroy === 'function') {
             window.Ammo.destroy(p2pConstraint);
-        } else if (typeof window.Ammo._free === 'function') {
+        } else if (typeof window.Ammo._free === 'function') { // Fallback for some versions
             window.Ammo._free(p2pConstraint);
         }
         p2pConstraint = null;
     }
+    // Clear existing rigid bodies from physics world and our array
     if (physicsWorld && window.Ammo) {
         for (let i = rigidBodies.length - 1; i >= 0; i--) {
             const body = rigidBodies[i];
             physicsWorld.removeRigidBody(body);
+            // Check if body has destroy method (newer Ammo) or needs _free (older)
             if (typeof body.destroy === 'function') { // Check if body has destroy method
                 window.Ammo.destroy(body);
             } else if (typeof window.Ammo._free === 'function') { // Fallback for some versions
@@ -491,27 +505,33 @@ function onFileSelected(event) {
             }
         }
     }
-    rigidBodies.length = 0;
+    rigidBodies.length = 0; // Clear the array
 
+    // Toggle visibility of programmatic arm vs loaded model
     const armElements = [armBase, upperArm, lowerArm, ikTarget];
     const shouldShowArm = !(filename.endsWith('.urdf') || filename.endsWith('.obj'));
     armElements.forEach(el => { if (el) el.visible = shouldShowArm; });
-    if (shouldShowArm && ammoLowerArm && !p2pConstraint && physicsWorld) setupIK();
+    if (shouldShowArm && ammoLowerArm && !p2pConstraint && physicsWorld) setupIK(); // Re-setup IK if arm is visible
 
 
+    // --- URDF Loading Block - To be commented out ---
+    /*
     if (filename.endsWith('.urdf')) {
         reader.onload = function (e) {
             showStatus(`Reading URDF file "${filename}"...`);
             try {
-                const urdfLoader = new THREE.URDFLoader();
-                urdfLoader.workingPath = currentModelBasePath;
+                const urdfLoader = new THREE.URDFLoader(); // Requires URDFLoader.js to be loaded
+                urdfLoader.workingPath = currentModelBasePath; // Set base path for relative resources
                 console.log(`[URDFLoad] Set URDFLoader.workingPath to: "${urdfLoader.workingPath}"`);
 
+                // Custom mesh loading callback
                 urdfLoader.loadMeshCb = (path, manager, onComplete, onErrorOriginal) => {
                     const originalPath = path;
                     console.log(`[URDF Resource] Requested mesh: "${originalPath}"`);
                     let resolvedPath = path;
 
+                    // Attempt to resolve "package://" paths by stripping the package prefix
+                    // This is a common convention in ROS environments
                     if (resolvedPath.startsWith('package://')) {
                         resolvedPath = resolvedPath.replace(/^package:\/\/[^\/]+\//, '');
                         console.log(`[URDF Resource] Attempting to resolve package path "${originalPath}" to relative path: "${resolvedPath}"`);
@@ -520,10 +540,16 @@ function onFileSelected(event) {
                     const ext = resolvedPath.split('.').pop().toLowerCase();
                     let loader;
 
-                    const basePathForSubloader = urdfLoader.path || '';
+                    // Determine base path for sub-loaders (STL, OBJ, DAE)
+                    // If urdfLoader.path is set (usually by the loader itself from the URDF file's path), use it.
+                    // Otherwise, fallback to currentModelBasePath or an empty string.
+                    const basePathForSubloader = urdfLoader.path || ''; // URDFLoader might set its own 'path' property
                     console.log('[URDF Resource] Using base path for sub-loader (from urdfLoader.path): "' + basePathForSubloader + '"');
+
+
                     console.log(`[URDF Resource] Trying to load: "${resolvedPath}", Extension: ${ext}, Base for sub-loader: "${basePathForSubloader}"`);
 
+                    // Placeholder material and geometry for errors or unsupported types
                     const placeholderMaterial = new THREE.MeshPhongMaterial({color: Math.random() * 0xffffff, wireframe: true, name: `Placeholder for ${resolvedPath}`});
                     const placeholderGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
 
@@ -534,43 +560,43 @@ function onFileSelected(event) {
 
                         const placeholder = new THREE.Mesh(placeholderGeometry, placeholderMaterial);
                         placeholder.name = `Placeholder_Error_${resolvedPath}`;
-                        onComplete(placeholder, errorMsg);
+                        onComplete(placeholder, errorMsg); // Call onComplete even on error, with a placeholder
                     };
 
                     const meshOnSuccess = (meshResult, loaderName) => {
                         console.log(`[URDF Resource] Successfully loaded ${loaderName} mesh: "${resolvedPath}" (original: "${originalPath}")`);
                         showStatus(`Loaded mesh: ${resolvedPath}`, false, true);
-                        if (meshResult && !meshResult.name && resolvedPath) {
+                        if (meshResult && !meshResult.name && resolvedPath) { // Ensure mesh has a name
                             meshResult.name = resolvedPath;
                         }
                         onComplete(meshResult);
                     };
 
                     if (ext === 'stl' || ext === 'stla' || ext === 'stlb') {
-                        loader = new THREE.STLLoader(manager);
+                        loader = new THREE.STLLoader(manager); // Requires STLLoader.js
                         if (basePathForSubloader) loader.setPath(basePathForSubloader);
                         loader.load(resolvedPath,
-                            geometry => {
+                            geometry => { // STLLoader returns geometry
                                 const material = new THREE.MeshPhongMaterial({ color: 0xbbbbbb, wireframe: false, name: resolvedPath });
                                 const mesh = new THREE.Mesh(geometry, material);
                                 meshOnSuccess(mesh, "STL");
                             },
-                            undefined,
+                            undefined, // onProgress
                             meshOnError
                         );
                     } else if (ext === 'obj') {
-                        loader = new THREE.OBJLoader(manager);
+                        loader = new THREE.OBJLoader(manager); // Requires OBJLoader.js
                         if (basePathForSubloader) loader.setPath(basePathForSubloader);
                         loader.load(resolvedPath,
-                            obj => { meshOnSuccess(obj, "OBJ"); },
+                            obj => { meshOnSuccess(obj, "OBJ"); }, // OBJLoader returns a group/object
                             undefined,
                             meshOnError
                         );
                     } else if (ext === 'dae') {
-                        loader = new THREE.ColladaLoader(manager);
+                        loader = new THREE.ColladaLoader(manager); // Requires ColladaLoader.js
                         if (basePathForSubloader) loader.setPath(basePathForSubloader);
                         loader.load(resolvedPath,
-                            collada => { meshOnSuccess(collada.scene, "DAE"); },
+                            collada => { meshOnSuccess(collada.scene, "DAE"); }, // ColladaLoader returns an object with a scene
                             undefined,
                             meshOnError
                         );
@@ -585,18 +611,28 @@ function onFileSelected(event) {
                 };
 
                 console.log("[URDFLoad] Attempting to parse URDF data for:", file.name);
-                let urdfParsePath = file.name;
+                // Special handling for go2_description.urdf if needed (e.g. if its paths are tricky)
+                let urdfParsePath = file.name; // Default to using the filename as the path context for the parser
                 if (file.name.toLowerCase() === 'go2_description.urdf') {
-                    urdfParsePath = 'URDF/' + file.name;
+                    // If go2_description.urdf expects its meshes in a specific relative path like 'URDF/dae/'
+                    // you might need to adjust urdfParsePath or ensure urdfLoader.workingPath is set correctly.
+                    // Example: If go2_description.urdf is at root, and meshes are in 'URDF/dae/',
+                    // then urdfLoader.workingPath should be '' or './'
+                    // and paths inside URDF like 'package://go2_description/meshes/dae/base.DAE'
+                    // would be resolved by loadMeshCb to 'meshes/dae/base.DAE'
+                    // which needs to be relative to workingPath.
+                    // If go2_description.urdf itself is in an 'URDF/' subfolder, then workingPath might be 'URDF/'
+                    urdfParsePath = 'URDF/' + file.name; // This line was in the original, might be specific to that setup
                     console.log('[URDFLoad] Detected go2_description.urdf, setting parse path to: ' + urdfParsePath);
                 }
-                loadedModel = urdfLoader.parse(e.target.result, urdfParsePath);
+                loadedModel = urdfLoader.parse(e.target.result, urdfParsePath); // Pass path for context
 
                 if (loadedModel) {
                     console.log("[URDFLoad] URDF model parsed successfully:", loadedModel.name || filename);
                     showStatus(`Parsed "${filename}". Loading meshes...`);
                     scene.add(loadedModel);
 
+                    // Specific guidance for go2_description.urdf if its mesh paths are relative to a subfolder
                     if (file.name.toLowerCase() === 'go2_description.urdf') {
                         const meshLocationMessage = "For 'go2_description.urdf', ensure DAE mesh files (base.dae, hip.dae, etc.) are in 'URDF/dae/' relative to index.html.";
                         showStatus(meshLocationMessage, false); // 'false' for not an error
@@ -604,52 +640,56 @@ function onFileSelected(event) {
                     }
 
                     fitCameraToObject(loadedModel, 2.5);
-                    armElements.forEach(el => { if (el) el.visible = false; });
+                    armElements.forEach(el => { if (el) el.visible = false; }); // Hide simple arm
                     showStatus(`URDF "${filename}" structure loaded. Meshes loading... Check console.`, false, false);
                 } else {
                     console.error("[URDFLoad] URDFLoader.parse returned null or undefined for", filename);
                     showStatus(`Failed to parse URDF structure for "${filename}". Displaying simple arm.`, true);
-                    armElements.forEach(el => { if (el) el.visible = true; });
-                    if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK();
+                    armElements.forEach(el => { if (el) el.visible = true; }); // Show simple arm
+                    if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK(); // Re-setup IK
                 }
+
             } catch (parseError) {
                 console.error(`[URDFLoad] Error parsing URDF "${filename}":`, parseError);
                 showStatus(`Error parsing URDF "${filename}": ${parseError.message}. Displaying simple arm.`, true);
-                armElements.forEach(el => { if (el) el.visible = true; });
-                if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK();
+                armElements.forEach(el => { if (el) el.visible = true; }); // Show simple arm
+                if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK(); // Re-setup IK
             }
         };
         reader.readAsText(file);
-    } else if (filename.endsWith('.obj')) {
+    } else */
+    // --- End of URDF Loading Block ---
+
+    if (filename.endsWith('.obj')) { // Ensure this is an 'else if' if URDF block is restored
         reader.onload = function (e) {
             try {
-                const objLoader = new THREE.OBJLoader();
+                const objLoader = new THREE.OBJLoader(); // Requires OBJLoader.js
                 console.log("[OBJLoad] Parsing OBJ content from file:", filename);
                 loadedModel = objLoader.parse(e.target.result);
                 if (loadedModel) {
                     scene.add(loadedModel);
                     console.log("[OBJLoad] OBJ model added to scene:", loadedModel.name || "unnamed_obj");
                     fitCameraToObject(loadedModel, 1.5);
-                    armElements.forEach(el => { if (el) el.visible = false; });
+                    armElements.forEach(el => { if (el) el.visible = false; }); // Hide simple arm
                     showStatus(`Successfully loaded "${filename}"`, false, true);
                 } else {
                     console.error("[OBJLoad] OBJLoader.parse returned null or undefined for", filename);
                     showStatus(`Failed to parse OBJ "${filename}". Displaying simple arm.`, true);
-                    armElements.forEach(el => { if (el) el.visible = true; });
-                    if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK();
+                    armElements.forEach(el => { if (el) el.visible = true; }); // Show simple arm
+                    if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK(); // Re-setup IK
                 }
             } catch (parseError) {
                 console.error("[OBJLoad] Error parsing OBJ:", filename, parseError);
                 showStatus(`Error parsing OBJ "${filename}": ${parseError.message}. Displaying simple arm.`, true);
-                armElements.forEach(el => { if (el) el.visible = true; });
-                if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK();
+                armElements.forEach(el => { if (el) el.visible = true; }); // Show simple arm
+                if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK(); // Re-setup IK
             }
         };
         reader.readAsText(file);
-    } else {
+    } else if (!filename.endsWith('.urdf')) { // Add this condition to ensure the 'else' only triggers for non-urdf and non-obj
         showStatus(`Unsupported file type: "${filename}". Please select URDF or OBJ. Displaying simple arm.`, true);
-        armElements.forEach(el => { if (el) el.visible = true; });
-        if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK();
+        armElements.forEach(el => { if (el) el.visible = true; }); // Show simple arm
+        if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK(); // Re-setup IK
     }
     // URL.revokeObjectURL(fileURL); // Not used directly by file reader, so can be revoked earlier or not at all.
 }
@@ -660,12 +700,13 @@ function onFileSelected(event) {
  * within the view.
  */
 function fitCameraToObject(object, offset) {
-    offset = offset || 1.5;
+    offset = offset || 1.5; // Default offset
     const boundingBox = new THREE.Box3();
-    boundingBox.setFromObject(object);
+    boundingBox.setFromObject(object); // Compute AABB
     const center = boundingBox.getCenter(new THREE.Vector3());
     const size = boundingBox.getSize(new THREE.Vector3());
 
+    // Logging for diagnostics
     const objectDisplayName = object.name || (object.children.length ? object.children[0].name : (fileInput && fileInput.files[0] ? fileInput.files[0].name : 'unknown object'));
     console.log(`fitCameraToObject: Object name: "${objectDisplayName}", BBox center: {x: ${center.x.toFixed(2)}, y: ${center.y.toFixed(2)}, z: ${center.z.toFixed(2)}}`);
     console.log(`fitCameraToObject: Object BBox size: {x: ${size.x.toFixed(2)}, y: ${size.y.toFixed(2)}, z: ${size.z.toFixed(2)}}`);
@@ -673,26 +714,33 @@ function fitCameraToObject(object, offset) {
     const boundingSphere = boundingBox.getBoundingSphere(new THREE.Sphere());
     let radius = boundingSphere.radius;
 
+    // Handle cases where radius might be zero or invalid
     if (radius === 0 || !isFinite(radius) || isNaN(radius)) {
         console.warn(`fitCameraToObject: Object "${objectDisplayName}" has zero, NaN, or non-finite radius (${radius}). Bounding box might be empty or model not loaded correctly. Using fallback camera.`);
         showStatus(`Warning: Model "${objectDisplayName}" loaded but may be empty or scaled incorrectly. Check console.`, true);
 
-        const fallbackCenter = isFinite(center.x) && isFinite(center.y) && isFinite(center.z) ? center : new THREE.Vector3(0,1,0);
-        camera.position.set(fallbackCenter.x, fallbackCenter.y + 2, fallbackCenter.z + 5);
+        // Fallback camera positioning
+        const fallbackCenter = isFinite(center.x) && isFinite(center.y) && isFinite(center.z) ? center : new THREE.Vector3(0,1,0); // Use origin if center is also NaN
+        camera.position.set(fallbackCenter.x, fallbackCenter.y + 2, fallbackCenter.z + 5); // Slightly above and away
         camera.lookAt(fallbackCenter);
-        camera.near = 0.1;
+        camera.near = 0.1; // Reset near/far planes for fallback
         camera.far = 1000;
         camera.updateProjectionMatrix();
         return;
     }
 
+    // Calculate distance to fit the object based on FOV and sphere radius
     const fov = camera.fov * (Math.PI / 180);
     let cameraDistance = Math.abs(radius / Math.sin(fov / 2));
-    cameraDistance *= offset;
-    const direction = new THREE.Vector3(0.5, 0.5, 1).normalize();
+    cameraDistance *= offset; // Apply offset
+
+    // Position camera along a fixed direction from the object's center
+    const direction = new THREE.Vector3(0.5, 0.5, 1).normalize(); // Example direction
     camera.position.copy(center).addScaledVector(direction, cameraDistance);
     camera.lookAt(center);
-    camera.near = Math.max(0.1, cameraDistance - radius * 1.1);
+
+    // Adjust near and far planes
+    camera.near = Math.max(0.1, cameraDistance - radius * 1.1); // Ensure near > 0
     camera.far = cameraDistance + radius * 1.1;
     camera.updateProjectionMatrix();
     console.log(`fitCameraToObject: New camera for "${objectDisplayName}": pos: {x: ${camera.position.x.toFixed(2)}, y: ${camera.position.y.toFixed(2)}, z: ${camera.position.z.toFixed(2)}}, near: ${camera.near.toFixed(2)}, far: ${camera.far.toFixed(2)}`);
@@ -715,17 +763,20 @@ function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
 
-    if (physicsWorld && window.Ammo && armBase && armBase.visible) {
-        if (!p2pConstraint && ammoLowerArm) {
+    // Physics update
+    if (physicsWorld && window.Ammo && armBase && armBase.visible) { // Only update physics if arm is visible
+        if (!p2pConstraint && ammoLowerArm) { // If IK not set up (e.g. after model load hid arm)
             setupIK();
         }
         if (p2pConstraint) {
+             // Update the P2P constraint's target position
              p2pConstraint.setPivotB(new window.Ammo.btVector3(ikTargetPos.x, ikTargetPos.y, ikTargetPos.z));
         }
-        physicsWorld.stepSimulation(deltaTime, 10, 1/60);
+        physicsWorld.stepSimulation(deltaTime, 10, 1/60); // Fixed timestep for stability
+        // Update Three.js meshes from Ammo.js rigid bodies
         for (let i = 0; i < rigidBodies.length; i++) {
             const body = rigidBodies[i];
-            if (body.threeObject && body.threeObject.visible) {
+            if (body.threeObject && body.threeObject.visible) { // Only update visible objects
                 const ms = body.getMotionState();
                 if (ms) {
                     ms.getWorldTransform(tmpTransform);
