@@ -1,4 +1,3 @@
-import * as THREE from './js/libs/three-r140/three.min.js';
 // --- Global Variables ---
 
 // Three.js Core Components
@@ -126,21 +125,17 @@ function init() {
         console.warn("init(): statusMessage element not found in DOM on initialcheck. Alerts will be used by showStatus.");
     }
     console.log("init: Script execution started.");
-    // REMOVED: if (typeof THREE === 'undefined') check, as THREE will be imported.
-
-    // URDFLoader check modification:
-    // The original code checked `typeof THREE.URDFLoader === 'undefined'`.
-    // Since we are commenting out the URDF loading logic for now,
-    // this check can also be commented out or adjusted.
-    // For now, we'll comment it out to avoid premature errors if URDFLoader.js isn't loaded.
-    /*
-    if (typeof THREE.URDFLoader === 'undefined') { // CORRECTED CHECK for r128
+    if (typeof THREE === 'undefined') { // This check is from the user's working main_app.js
+        console.error("THREE object is undefined! three.min.js (r128) might have failed to load. Application cannot start.");
+        alert("Critical Error: THREE.js core library not loaded. Check browser console (F12) for Network errors.");
+        return; // Halt execution
+    }
+    if (typeof THREE.URDFLoader === 'undefined') { // This check is from the user's working main_app.js
         const criticalMessage = "THREE.URDFLoader is undefined! URDFLoader.js (r128) might have failed to load. Check Network tab and script tags in index.html.";
         console.error(criticalMessage);
         alert(criticalMessage);
         // Allow initThreeJS to run to setup basic scene and status element for other messages.
     }
-    */
 
     showStatus("Main script running...", false, true);
     initThreeJS(); // Original call
@@ -514,8 +509,6 @@ function onFileSelected(event) {
     if (shouldShowArm && ammoLowerArm && !p2pConstraint && physicsWorld) setupIK(); // Re-setup IK if arm is visible
 
 
-    // --- URDF Loading Block - To be commented out ---
-    /*
     if (filename.endsWith('.urdf')) {
         reader.onload = function (e) {
             showStatus(`Reading URDF file "${filename}"...`);
@@ -657,10 +650,7 @@ function onFileSelected(event) {
             }
         };
         reader.readAsText(file);
-    } else */
-    // --- End of URDF Loading Block ---
-
-    if (filename.endsWith('.obj')) { // Ensure this is an 'else if' if URDF block is restored
+    } else if (filename.endsWith('.obj')) {
         reader.onload = function (e) {
             try {
                 const objLoader = new THREE.OBJLoader(); // Requires OBJLoader.js
@@ -686,7 +676,7 @@ function onFileSelected(event) {
             }
         };
         reader.readAsText(file);
-    } else if (!filename.endsWith('.urdf')) { // Add this condition to ensure the 'else' only triggers for non-urdf and non-obj
+    } else {
         showStatus(`Unsupported file type: "${filename}". Please select URDF or OBJ. Displaying simple arm.`, true);
         armElements.forEach(el => { if (el) el.visible = true; }); // Show simple arm
         if (ammoLowerArm && !p2pConstraint && physicsWorld) setupIK(); // Re-setup IK
